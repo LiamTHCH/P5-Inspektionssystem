@@ -86,6 +86,11 @@ for i in range(len(big_lignes)):
 roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
 
 # Display the result using matplotlib
-plt.imshow(roi_rgb)
-plt.axis('off')
+fig, ax = plt.subplots(1, 2, figsize=(15, 7))
+ax[0].imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+ax[0].axis('off')
+ax[0].set_title('Original Image')
+ax[1].imshow(roi_rgb)
+ax[1].axis('off')
+ax[1].set_title('ROI with lines and rectangles')
 plt.show()
