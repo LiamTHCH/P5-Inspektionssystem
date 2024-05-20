@@ -3,13 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load image
-image = cv2.imread('20240327_140909.jpg')
+image = cv2.imread('20240327_140917.jpg')
 
 # Get image dimensions
 height, width = image.shape[:2]
 
 # Define the region of interest (upper half of the image)
 roi = image[0:height//2, :]
+#roi = image
 
 # Convert ROI to grayscale
 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -48,22 +49,37 @@ if lines is not None:
 
     # Draw continuous lines for each group of lines at the same height
     nb_big_lines = 0
+    big_lignes = []
     for y, group_lines in lines_by_y.items():
         # Find minimum and maximum x-coordinates
         min_x = min(group_lines, key=lambda x: x[0])[0]
         max_x = max(group_lines, key=lambda x: x[2])[2]
         # Draw a single line covering all lines at this height
         if nb_big_lines < 2:
+            # group 1
             cv2.line(roi, (min_x, y), (max_x, y), (0, 0, 255), 2)
+            big_lignes.append({"y": y, "group": 1, "min_x": min_x, "max_x": max_x})
             nb_big_lines += 1
         elif 2 <= nb_big_lines <= 4:
+            # group 2
             cv2.line(roi, (min_x, y), (max_x, y), (0, 255, 0), 2)
+            big_lignes.append({"y": y, "group": 2, "min_x": min_x, "max_x": max_x})
             nb_big_lines += 1
         else:
+            # group 3
             cv2.line(roi, (min_x, y), (max_x, y), (0, 0, 255), 2)
+            big_lignes.append({"y": y, "group": 3, "min_x": min_x, "max_x": max_x})
             nb_big_lines += 1
 
         print(f"Horizontal line detected at y = {y}")
+
+for i in range(len(big_lignes)):
+    if i == 0:
+        smallest_min_x = min(big_lignes[i]["min_x"], big_lignes[i+1]["min_x"])
+        cv2.rectangle(roi, (smallest_min_x, big_lignes[i]["y"]), (big_lignes[i]["max_x"], big_lignes[i+1]["y"]), (0, 0, 255), 2)
+    if i == 2:
+        smallest_min_x = min(big_lignes[i]["min_x"], big_lignes[i+1]["min_x"])
+        cv2.rectangle(roi, (smallest_min_x, big_lignes[i]["y"]), (big_lignes[i]["max_x"], big_lignes[i+1]["y"]), (0, 255, 0), 2)
 
 
 # Convert ROI from BGR to RGB for displaying with matplotlib
