@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load image
-image = cv2.imread('20240327_140909.jpg')
+image = cv2.imread('20240327_140917.jpg')
 
 
 def calculate_darkness(roi):
