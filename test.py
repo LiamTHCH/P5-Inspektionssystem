@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load image
-image = cv2.imread('20240327_140917.jpg')
+image = cv2.imread('20240614_183323.jpg')
 
 
 def calculate_darkness(roi):
@@ -17,11 +17,13 @@ height, width = image.shape[:2]
 
 # Define the region of interest (upper half of the image)
 roi = image[0:height//2, :]
-
+cv2.imwrite('image.jpg', image)
 #roi = image
+cv2.imwrite('roi.jpg', roi)
 
 # Convert ROI to grayscale
 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+cv2.imwrite('gray.jpg', roi)
 
 # Apply Gaussian blur
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -118,5 +120,10 @@ ax[2].set_title('ROI with lines and rectangles')
 ax[3].imshow(cv2.cvtColor(thresholded, cv2.COLOR_BGR2RGB))
 ax[3].axis('off')
 ax[3].set_title('Thresholded Image')
+#cv2.imwrite('image.jpg', image)
+#cv2.imwrite('roi.jpg', roi)
+cv2.imwrite('roi2.jpg', roi2)
+cv2.imwrite('thresholded.jpg', thresholded)
+cv2.imwrite('contour_image.jpg', contour_image)
 
 plt.show()
