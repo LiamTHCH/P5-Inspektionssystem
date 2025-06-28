@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load image
-image = cv2.imread('20240614_183323.jpg')
+image = cv2.imread('20240327_140909.jpg')
 
 
 def calculate_darkness(roi):
@@ -22,7 +22,11 @@ cv2.imwrite('image.jpg', image)
 cv2.imwrite('roi.jpg', roi)
 
 # Convert ROI to grayscale
-gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+try:
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+except:
+    gray = roi
+
 cv2.imwrite('gray.jpg', roi)
 
 # Apply Gaussian blur
@@ -87,14 +91,19 @@ for i in range(len(big_lignes)):
     if i == 0:
         smallest_min_x = min(big_lignes[i]["min_x"], big_lignes[i+1]["min_x"])
         cv2.rectangle(roi, (smallest_min_x, big_lignes[i]["y"]), (big_lignes[i]["max_x"], big_lignes[i+1]["y"]), (0, 0, 255), 2)
+        roi2 = roi
     if i == 2:
         smallest_min_x = min(big_lignes[i]["min_x"], big_lignes[i+1]["min_x"])
         cv2.rectangle(roi, (smallest_min_x, big_lignes[i]["y"]), (big_lignes[i]["max_x"], big_lignes[i+1]["y"]), (0, 255, 0), 2)
         roi2 = image[big_lignes[i+1]["y"]:big_lignes[i]["y"], smallest_min_x:big_lignes[i]["max_x"]]
 
+try:
+    roi_gray = cv2.cvtColor(roi2, cv2.COLOR_BGR2GRAY)
+    enhanced_gray = cv2.equalizeHist(roi_gray)
+except:
+    roi_gray = roi2
+    enhanced_gray = roi_gray
 
-roi_gray = cv2.cvtColor(roi2, cv2.COLOR_BGR2GRAY)
-enhanced_gray = cv2.equalizeHist(roi_gray)
 _, thresholded = cv2.threshold(enhanced_gray, 50, 255, cv2.THRESH_BINARY_INV)
 contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 contour_image = roi2.copy()
@@ -103,9 +112,17 @@ cv2.drawContours(contour_image, contours, -1, (0, 255, 0), 2)
 
 
 # Convert ROI from BGR to RGB for displaying with matplotlib
-roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
-roi2_rgb = cv2.cvtColor(roi2, cv2.COLOR_BGR2RGB)
+try:
+    roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
+    roi2_rgb = cv2.cvtColor(roi2, cv2.COLOR_BGR2RGB)
 
+except:
+        pass
+roi_rgb = roi
+roi2_rgb = roi2
+cv2.imwrite('roi2.jpg', roi2)
+cv2.imwrite('thresholded.jpg', thresholded)
+cv2.imwrite('contour_image.jpg', contour_image)
 # Display the result using matplotlib
 fig, ax = plt.subplots(1, 4, figsize=(15, 7))
 ax[0].imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -122,8 +139,6 @@ ax[3].axis('off')
 ax[3].set_title('Thresholded Image')
 #cv2.imwrite('image.jpg', image)
 #cv2.imwrite('roi.jpg', roi)
-cv2.imwrite('roi2.jpg', roi2)
-cv2.imwrite('thresholded.jpg', thresholded)
-cv2.imwrite('contour_image.jpg', contour_image)
+
 
 plt.show()
