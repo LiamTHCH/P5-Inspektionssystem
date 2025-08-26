@@ -12,19 +12,21 @@ import logging
 # Load environment variables
 load_dotenv()
 
-# Load MQTT config from env
+# MQTT Config
 MQTT_BROKER = os.getenv('MQTT_BROKER')
 MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
 MQTT_TOPIC = os.getenv('MQTT_TOPIC')
 
-# Load Debug flag and configure logging
+# Debug flag
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+
+# Configure logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
-# Load detection ROI parameters from env
+# ROI and thresholds from environment or defaults
 LID_ROI = {
     "x": int(os.getenv('LID_ROI_X', '180')),
     "y": int(os.getenv('LID_ROI_Y', '150')),
@@ -32,7 +34,6 @@ LID_ROI = {
     "h": int(os.getenv('LID_ROI_H', '30'))
 }
 
-# Load detection thresholds
 EDGE_RATIO_THRESHOLD = float(os.getenv('EDGE_RATIO_THRESHOLD', '0.02'))
 MEAN_INTENSITY_THRESHOLD = float(os.getenv('MEAN_INTENSITY_THRESHOLD', '180'))
 
@@ -78,7 +79,7 @@ def encode_image_to_base64(image):
     return base64.b64encode(jpeg.tobytes()).decode('utf-8')
 
 def publish_mqtt(client, lid_status, image_b64):
-    lid_status = bool(lid_status)  # Convert numpy.bool_ to Python bool
+    lid_status = bool(lid_status)  # Convert numpy.bool_ to native bool
 
     payload = {
         "timestamp": int(time.time() * 1000),
@@ -107,16 +108,16 @@ def publish_mqtt(client, lid_status, image_b64):
     else:
         logging.error(f"Failed to publish MQTT message, error code: {result.rc}")
 
-# MQTT callbacks for logging
+# MQTT callbacks
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logging.info("Connected successfully to MQTT Broker")
     else:
-        logging.error(f"Failed to connect to MQTT Broker, return code {rc}")
+        logging.error(f"Failed to connect, return code {rc}")
 
 def on_disconnect(client, userdata, rc):
-    logging.warning(f"Disconnected from MQTT Broker with return code {rc}")
+    logging.warning(f"Disconnected from MQTT Broker with code {rc}")
 
 def on_publish(client, userdata, mid):
     logging.debug(f"Message published with mid: {mid}")
@@ -138,10 +139,9 @@ def main():
     picam2 = Picamera2()
     picam2.configure(picam2.create_preview_configuration())
     picam2.start()
-    time.sleep(2)  # Camera warm-up
+    time.sleep(2)  # camera warm-up
 
     STABLE_TIME_SECONDS = 5
-
     last_lid_status = None
     last_status_change_time = time.time()
     message_sent_time = 0
@@ -153,14 +153,12 @@ def main():
 
             lid_detected, result_frame, lid_roi = detect_lid_fixed_position(frame)
 
-            # Check if status changed
             if lid_detected != last_lid_status:
                 last_lid_status = lid_detected
                 last_status_change_time = time.time()
                 if DEBUG:
                     logging.debug(f"Lid status changed to {lid_detected}, waiting for stability...")
 
-            # If stable for STABLE_TIME_SECONDS and last publish was before status change, publish
             elif (time.time() - last_status_change_time) >= STABLE_TIME_SECONDS and message_sent_time < last_status_change_time:
                 image_b64 = encode_image_to_base64(lid_roi)
                 publish_mqtt(client, lid_detected, image_b64)
@@ -184,3 +182,6 @@ def main():
         cv2.destroyAllWindows()
         client.loop_stop()
         client.disconnect()
+
+if __name__ == "__main__":
+    main()
