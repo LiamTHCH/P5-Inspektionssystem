@@ -1,0 +1,14 @@
+[Unit]
+Description=Can Lid Detection Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStartPre=/bin/sleep 60
+ExecStart=/usr/bin/env python3 /home/pi/Documents/TEST_pi_camera.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

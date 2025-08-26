@@ -20,13 +20,12 @@ MQTT_TOPIC = os.getenv('MQTT_TOPIC')
 # Debug flag
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# Configure logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
-# ROI and thresholds from environment or defaults
+# ROI and thresholds
 LID_ROI = {
     "x": int(os.getenv('LID_ROI_X', '180')),
     "y": int(os.getenv('LID_ROI_Y', '150')),
@@ -79,21 +78,13 @@ def encode_image_to_base64(image):
     return base64.b64encode(jpeg.tobytes()).decode('utf-8')
 
 def publish_mqtt(client, lid_status, image_b64):
-    lid_status = bool(lid_status)  # Convert numpy.bool_ to native bool
+    lid_status = bool(lid_status)
 
     payload = {
         "timestamp": int(time.time() * 1000),
         "metrics": [
-            {
-                "name": "LidStatus",
-                "type": "Boolean",
-                "value": lid_status
-            },
-            {
-                "name": "LidImage",
-                "type": "String",
-                "value": image_b64
-            }
+            {"name": "LidStatus", "type": "Boolean", "value": lid_status},
+            {"name": "LidImage", "type": "String", "value": image_b64}
         ]
     }
     try:
@@ -107,8 +98,6 @@ def publish_mqtt(client, lid_status, image_b64):
         logging.info(f"Published lid status={lid_status} to topic {MQTT_TOPIC}")
     else:
         logging.error(f"Failed to publish MQTT message, error code: {result.rc}")
-
-# MQTT callbacks
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -126,6 +115,20 @@ def on_log(client, userdata, level, buf):
     if DEBUG:
         logging.debug(f"MQTT log: {buf}")
 
+def connect_mqtt_with_retry(client, broker, port, max_retries=10, delay=5):
+    retries = 0
+    while retries < max_retries:
+        try:
+            client.connect(broker, port, 60)
+            logging.info("Connected to MQTT Broker")
+            return True
+        except Exception as e:
+            logging.warning(f"MQTT connection failed: {e}, retrying in {delay} seconds...")
+            time.sleep(delay)
+            retries += 1
+    logging.error("Failed to connect to MQTT Broker after retries")
+    return False
+
 def main():
     client = mqtt.Client()
     client.on_connect = on_connect
@@ -133,7 +136,10 @@ def main():
     client.on_publish = on_publish
     client.on_log = on_log
 
-    client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    if not connect_mqtt_with_retry(client, MQTT_BROKER, MQTT_PORT):
+        logging.error("Exiting due to MQTT connection failure")
+        return
+
     client.loop_start()
 
     picam2 = Picamera2()
@@ -182,6 +188,7 @@ def main():
         cv2.destroyAllWindows()
         client.loop_stop()
         client.disconnect()
+
 
 if __name__ == "__main__":
     main()
