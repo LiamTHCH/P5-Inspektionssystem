@@ -60,6 +60,9 @@ def encode_image_to_base64(image):
     return base64.b64encode(jpeg.tobytes()).decode('utf-8')
 
 def publish_mqtt(client, lid_status, image_b64):
+    # Convert numpy.bool_ to native bool
+    lid_status = bool(lid_status)
+
     payload = {
         "timestamp": int(time.time() * 1000),
         "metrics": [
