@@ -13,7 +13,7 @@ import logging
 # Load environment variables
 load_dotenv()
 
-# MQTT configuration
+# MQTT Configuration
 MQTT_BROKER = os.getenv('MQTT_BROKER')
 MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
 MQTT_TOPIC = os.getenv('MQTT_TOPIC')
@@ -21,18 +21,17 @@ MQTT_TOPIC = os.getenv('MQTT_TOPIC')
 # Debug flag
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# Setup logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
-# Detection ROI and thresholds
+# Lid detection configuration
 LID_ROI = {
     "x": int(os.getenv('LID_ROI_X', '180')),
     "y": int(os.getenv('LID_ROI_Y', '150')),
     "w": int(os.getenv('LID_ROI_W', '200')),
-    "h": int(os.getenv('LID_ROI_H', '30'))
+    "h": int(os.getenv('LID_ROI_H', '30')),
 }
 EDGE_RATIO_THRESHOLD = float(os.getenv('EDGE_RATIO_THRESHOLD', '0.02'))
 MEAN_INTENSITY_THRESHOLD = float(os.getenv('MEAN_INTENSITY_THRESHOLD', '180'))
@@ -45,7 +44,7 @@ def detect_lid_fixed_position(frame):
     blurred = cv2.GaussianBlur(gray, (3, 3), 0)
     edges = cv2.Canny(blurred, 50, 150)
 
-    kernel = np.ones((3,3), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     edges = cv2.dilate(edges, kernel, iterations=1)
 
     edge_pixel_count = cv2.countNonZero(edges)
@@ -80,7 +79,6 @@ def encode_image_to_base64(image):
 
 def publish_mqtt(client, lid_status, image_b64):
     lid_status = bool(lid_status)
-
     payload = {
         "timestamp": int(time.time() * 1000),
         "metrics": [
@@ -144,15 +142,13 @@ def main():
     client.loop_start()
 
     picam2 = Picamera2()
-
     config = picam2.create_preview_configuration()
-
-    # Enable autofocus for Camera Module 3
-    config["controls"] = {"AfMode": controls.AfModeEnum.Auto}
-
     picam2.configure(config)
     picam2.start()
-    time.sleep(2)  # Allow autofocus to settle
+
+    # Trigger a single autofocus event
+    picam2.set_controls({"AfMode": controls.AfModeEnum.Auto, "AfTrigger": 0})
+    time.sleep(3)  # Allow focus to settle
 
     STABLE_TIME_SECONDS = 5
     last_lid_status = None
