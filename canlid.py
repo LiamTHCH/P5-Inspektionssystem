@@ -36,6 +36,9 @@ LID_ROI = {
 EDGE_RATIO_THRESHOLD = float(os.getenv('EDGE_RATIO_THRESHOLD', '0.02'))
 MEAN_INTENSITY_THRESHOLD = float(os.getenv('MEAN_INTENSITY_THRESHOLD', '180'))
 
+# Manual focus position (-1 means use autofocus)
+MANUAL_FOCUS_POSITION = float(os.getenv('MANUAL_FOCUS_POSITION', '-1'))
+
 def detect_lid_fixed_position(frame):
     x, y, w, h = LID_ROI.values()
     lid_roi = frame[y:y+h, x:x+w]
@@ -146,8 +149,19 @@ def main():
     picam2.configure(config)
     picam2.start()
 
-    # Trigger a single autofocus event
-    picam2.set_controls({"AfMode": controls.AfModeEnum.Auto, "AfTrigger": 0})
+    if MANUAL_FOCUS_POSITION >= 0:
+        picam2.set_controls({
+            "AfMode": controls.AfModeEnum.Manual,
+            "LensPosition": MANUAL_FOCUS_POSITION
+        })
+        logging.info(f"Manual focus set to position {MANUAL_FOCUS_POSITION}")
+    else:
+        picam2.set_controls({
+            "AfMode": controls.AfModeEnum.Auto,
+            "AfTrigger": 0
+        })
+        logging.info("Autofocus enabled")
+
     time.sleep(3)  # Allow focus to settle
 
     STABLE_TIME_SECONDS = 5
