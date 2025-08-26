@@ -5,6 +5,7 @@ import base64
 import json
 import time
 from picamera2 import Picamera2
+from libcamera import controls
 from dotenv import load_dotenv
 import os
 import logging
@@ -12,7 +13,7 @@ import logging
 # Load environment variables
 load_dotenv()
 
-# MQTT Config
+# MQTT configuration
 MQTT_BROKER = os.getenv('MQTT_BROKER')
 MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
 MQTT_TOPIC = os.getenv('MQTT_TOPIC')
@@ -20,19 +21,19 @@ MQTT_TOPIC = os.getenv('MQTT_TOPIC')
 # Debug flag
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
+# Setup logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
-# ROI and thresholds
+# Detection ROI and thresholds
 LID_ROI = {
     "x": int(os.getenv('LID_ROI_X', '180')),
     "y": int(os.getenv('LID_ROI_Y', '150')),
     "w": int(os.getenv('LID_ROI_W', '200')),
     "h": int(os.getenv('LID_ROI_H', '30'))
 }
-
 EDGE_RATIO_THRESHOLD = float(os.getenv('EDGE_RATIO_THRESHOLD', '0.02'))
 MEAN_INTENSITY_THRESHOLD = float(os.getenv('MEAN_INTENSITY_THRESHOLD', '180'))
 
@@ -143,9 +144,15 @@ def main():
     client.loop_start()
 
     picam2 = Picamera2()
-    picam2.configure(picam2.create_preview_configuration())
+
+    config = picam2.create_preview_configuration()
+
+    # Enable autofocus for Camera Module 3
+    config["controls"] = {"AfMode": controls.AfModeEnum.Auto}
+
+    picam2.configure(config)
     picam2.start()
-    time.sleep(2)  # camera warm-up
+    time.sleep(2)  # Allow autofocus to settle
 
     STABLE_TIME_SECONDS = 5
     last_lid_status = None
@@ -188,7 +195,6 @@ def main():
         cv2.destroyAllWindows()
         client.loop_stop()
         client.disconnect()
-
 
 if __name__ == "__main__":
     main()
