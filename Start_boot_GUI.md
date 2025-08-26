@@ -1,6 +1,5 @@
-pi@raspberrypi:~ $ cat /etc/xdg/lxsession/LXDE-pi/autostart
-@lxpanel --profile LXDE-pi
-@pcmanfm --desktop --profile LXDE-pi
-@xscreensaver -no-splash
-@python3  /home/pi/Documents/canlid.py
-pi@raspberrypi:~ $
+pi@raspberrypi:~ $ cat /home/pi/.config/autostart/canlid.desktop
+[Desktop Entry]
+Type=Application
+Name=Canlid
+Exec=xterm -hold -e '/usr/bin/python3 /home/pi/Documents/canlid.py'
