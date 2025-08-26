@@ -140,6 +140,12 @@ def main():
     picam2.start()
     time.sleep(2)  # Camera warm-up
 
+    STABLE_TIME_SECONDS = 5
+
+    last_lid_status = None
+    last_status_change_time = time.time()
+    message_sent_time = 0
+
     try:
         while True:
             frame = picam2.capture_array()
@@ -147,13 +153,23 @@ def main():
 
             lid_detected, result_frame, lid_roi = detect_lid_fixed_position(frame)
 
+            # Check if status changed
+            if lid_detected != last_lid_status:
+                last_lid_status = lid_detected
+                last_status_change_time = time.time()
+                if DEBUG:
+                    logging.debug(f"Lid status changed to {lid_detected}, waiting for stability...")
+
+            # If stable for STABLE_TIME_SECONDS and last publish was before status change, publish
+            elif (time.time() - last_status_change_time) >= STABLE_TIME_SECONDS and message_sent_time < last_status_change_time:
+                image_b64 = encode_image_to_base64(lid_roi)
+                publish_mqtt(client, lid_detected, image_b64)
+                message_sent_time = time.time()
+
             status_text = "LID OK" if lid_detected else "LID MISSING"
             color = (0, 255, 0) if lid_detected else (0, 0, 255)
             cv2.putText(result_frame, status_text, (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-
-            image_b64 = encode_image_to_base64(lid_roi)
-            publish_mqtt(client, lid_detected, image_b64)
 
             cv2.imshow("Lid Detection - Fixed ROI", result_frame)
 
@@ -168,6 +184,3 @@ def main():
         cv2.destroyAllWindows()
         client.loop_stop()
         client.disconnect()
-
-if __name__ == "__main__":
-    main()
