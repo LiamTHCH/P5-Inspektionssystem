@@ -6,10 +6,14 @@ import json
 import time
 from picamera2 import Picamera2
 
-# MQTT Configuration
-MQTT_BROKER = "10.17.2.10"
-MQTT_PORT = 1883
-MQTT_TOPIC = "spBv1.0/cr/NDATA/rasp/canLidDetector"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+MQTT_BROKER = os.getenv('MQTT_BROKER')
+MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))  # Default port 1883
+MQTT_TOPIC = os.getenv('MQTT_TOPIC')
 
 # Region of Interest (calibrated for your can's lid position)
 LID_ROI = {
